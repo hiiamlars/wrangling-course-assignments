@@ -88,7 +88,7 @@ create data_combined_2 by joining 'data_combined' and data_selfreport_summary_su
 ```{r}
 
 data_combined_2 <- data_combined |> 
-  left_join(data_selfreport_summary_subset, by = join_by(unique_id)) |> 
+  inner_join(data_selfreport_summary_subset, by = join_by(unique_id)) |> 
   select(unique_id)
 
 ```
@@ -99,10 +99,8 @@ create 'data_missing_ids' which should list the unique_ids are missing from data
 
 ```{r}
 
-first_join <- data_age_gender_subset |> 
-  full_join(data_amp_summary_subset, data_selfreport_summary_subset, by = join_by(unique_id))
-
-data_missing_ids <- first_join |> 
+data_missing_ids <- data_age_gender_subset |> 
+  full_join(data_amp_summary_subset, data_selfreport_summary_subset, by = join_by(unique_id)) |> 
   anti_join(data_unique_id_subset, by = join_by(unique_id)) |> 
   select(unique_id)
 
