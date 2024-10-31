@@ -1,0 +1,92 @@
+---
+title: "homework_1410"
+author: "Lars Schilling"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r, include=FALSE}
+
+knitr::opts_chunk$set(message = FALSE,
+                      warning = FALSE)
+
+```
+
+# Dependencies
+
+```{r}
+
+library(dplyr)
+library(tidyr)
+library(readr)
+library(janitor) # for clean_names()
+library(stringr)
+
+```
+
+# Get data
+
+```{r}
+
+# # demographics
+# data_demographics_raw_messy <- read_csv("../data/raw/data_demographics_raw_messy.csv", skip = 2) |>
+#   janitor::clean_names()
+
+data_demographics_raw <- read_csv("../data/raw/data_demographics_raw.csv") |>
+  janitor::clean_names()
+
+# self report measure
+data_selfreport_raw <- read_csv("../data/raw/data_selfreport_raw.csv") |>
+  janitor::clean_names()
+
+# affect attribution procedure
+data_amp_raw <- read_csv("../data/raw/data_amp_raw.csv") |>
+  janitor::clean_names()
+
+```
+
+## Self-reports
+
+### Completeness
+
+Create an exclusion variable `exclude_amp_completeness` based on the AMP having the right number of trials.
+
+```{r}
+
+#colnames(data_selfreport_raw)
+
+# basic tidying
+data_selfreport_tidied <- data_selfreport_raw |>
+  rename(unique_id = subject,
+         item_type = trialcode) |>
+  select(unique_id, item_type, response) |>
+  filter(item_type != "instructions") |> 
+  mutate(response = case_when(
+         !is.na(as.numeric(response)) ~ as.numeric(response),
+         TRUE ~ NA
+         ))
+
+#checking data-completness
+completness_check <- data_selfreport_tidied |> 
+  count(unique_id, name = "n_trials") |> 
+  count(n_trials, name = "n_participants") |> 
+  arrange(desc(n_participants)) #two participants have only 1 data entry
+
+# removing data
+exclude_amp_completeness_raw <- data_selfreport_tidied |> 
+  select(unique_id) |> #for overview, only the respective column is taken
+  count(unique_id, name = "n_selfreports") |> #count for the number of responses per id
+  filter(n_selfreports == 3)# #only unique_id's with the correct number of responses are kept (assumed it's 3)
+
+#removing data II
+exclude_amp_completeness <- data_selfreport_tidied |>  semi_join(exclude_amp_completeness_raw, by = join_by(unique_id)) 
+
+#sanity check
+sanity_check <- exclude_amp_completeness |> 
+  count(unique_id, name = "n_selfreports") |> 
+  count(n_selfreports, name = "n_participants") |> 
+  arrange(desc(n_participants))
+sanity_check
+
+```
+
